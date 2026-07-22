@@ -378,6 +378,8 @@ const UserConfig = ({ config, role, refreshConfig }: UserConfigProps) => {
     role: 'user' | 'admin' | 'owner';
     enabledApis?: string[];
     tags?: string[];
+    tvboxToken?: string;
+    tvboxEnabledSources?: string[];
   } | null>(null);
   const [selectedApis, setSelectedApis] = useState<string[]>([]);
   const [showConfigureUserGroupModal, setShowConfigureUserGroupModal] = useState(false);
@@ -585,6 +587,8 @@ const UserConfig = ({ config, role, refreshConfig }: UserConfigProps) => {
     username: string;
     role: 'user' | 'admin' | 'owner';
     enabledApis?: string[];
+    tvboxToken?: string;
+    tvboxEnabledSources?: string[];
   }) => {
     setSelectedUser(user);
     setSelectedApis(user.enabledApis || []);
@@ -1362,6 +1366,36 @@ const UserConfig = ({ config, role, refreshConfig }: UserConfigProps) => {
                   <p className='text-sm text-blue-700 dark:text-blue-400 mt-1'>
                     提示：全不选为无限制，选中的采集源将限制用户只能访问这些源
                   </p>
+                </div>
+              </div>
+
+              {/* TVBox Token 配置入口与采集源权限保持在同一用户配置面板 */}
+              <div className='mb-6 rounded-lg border border-indigo-200 bg-indigo-50/70 p-4 dark:border-indigo-800 dark:bg-indigo-900/20'>
+                <div className='flex flex-wrap items-center justify-between gap-3'>
+                  <div>
+                    <h4 className='text-sm font-medium text-indigo-900 dark:text-indigo-200'>
+                      TVBox Token
+                    </h4>
+                    <p className='mt-1 text-xs text-indigo-700 dark:text-indigo-300'>
+                      {selectedUser.tvboxToken
+                        ? `已设置 · ${selectedUser.tvboxEnabledSources?.length ? `${selectedUser.tvboxEnabledSources.length} 个专用源` : '可访问全部源'}`
+                        : '未设置，可为该用户单独生成并限制可访问的源'}
+                    </p>
+                  </div>
+                  <button
+                    type='button'
+                    onClick={() => {
+                      setTVBoxTokenUser({
+                        username: selectedUser.username,
+                        tvboxToken: selectedUser.tvboxToken,
+                        tvboxEnabledSources: selectedUser.tvboxEnabledSources,
+                      });
+                      setShowTVBoxTokenModal(true);
+                    }}
+                    className={buttonStyles.roundedPrimary}
+                  >
+                    配置 TVBox Token
+                  </button>
                 </div>
               </div>
 
