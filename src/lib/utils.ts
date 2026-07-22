@@ -13,7 +13,7 @@ function getDoubanImageProxyConfig(): {
   | 'custom';
   proxyUrl: string;
 } {
-  let doubanImageProxyType =
+  const doubanImageProxyType =
     localStorage.getItem('doubanImageProxyType') ||
     (window as any).RUNTIME_CONFIG?.DOUBAN_IMAGE_PROXY_TYPE ||
     'cmliussss-cdn-tencent';
