@@ -98,6 +98,7 @@ function getDoubanProxyConfig(): {
   | 'cors-proxy-zwei'
   | 'cmliussss-cdn-tencent'
   | 'cmliussss-cdn-ali'
+  | 'cmliussss-unified'
   | 'cors-anywhere'
   | 'custom';
   proxyUrl: string;
@@ -123,7 +124,8 @@ export async function fetchDoubanCategories(
   params: DoubanCategoriesParams,
   proxyUrl: string,
   useTencentCDN = false,
-  useAliCDN = false
+  useAliCDN = false,
+  useUnified = false
 ): Promise<DoubanResult> {
   const { kind, category, type, pageLimit = 20, pageStart = 0 } = params;
 
@@ -144,7 +146,9 @@ export async function fetchDoubanCategories(
     throw new Error('pageStart 不能小于 0');
   }
 
-  const target = useTencentCDN
+  const target = useUnified
+    ? `https://img.doubanio.cmliussss.net/rexxar/api/v2/subject/recent_hot/${kind}?start=${pageStart}&limit=${pageLimit}&category=${category}&type=${type}`
+    : useTencentCDN
     ? `https://m.douban.cmliussss.net/rexxar/api/v2/subject/recent_hot/${kind}?start=${pageStart}&limit=${pageLimit}&category=${category}&type=${type}`
     : useAliCDN
       ? `https://m.douban.cmliussss.com/rexxar/api/v2/subject/recent_hot/${kind}?start=${pageStart}&limit=${pageLimit}&category=${category}&type=${type}`
@@ -153,7 +157,7 @@ export async function fetchDoubanCategories(
   try {
     const response = await fetchWithTimeout(
       target,
-      useTencentCDN || useAliCDN ? '' : proxyUrl
+      useUnified || useTencentCDN || useAliCDN ? '' : proxyUrl
     );
 
     if (!response.ok) {
@@ -204,6 +208,8 @@ export async function getDoubanCategories(
       return fetchDoubanCategories(params, '', true, false);
     case 'cmliussss-cdn-ali':
       return fetchDoubanCategories(params, '', false, true);
+    case 'cmliussss-unified':
+      return fetchDoubanCategories(params, '', false, false, true);
     case 'cors-anywhere':
       return fetchDoubanCategories(params, 'https://cors-anywhere.com/');
     case 'custom':
@@ -237,6 +243,8 @@ export async function getDoubanList(
       return fetchDoubanList(params, '', true, false);
     case 'cmliussss-cdn-ali':
       return fetchDoubanList(params, '', false, true);
+    case 'cmliussss-unified':
+      return fetchDoubanList(params, '', false, false, true);
     case 'cors-anywhere':
       return fetchDoubanList(params, 'https://cors-anywhere.com/');
     case 'custom':
@@ -255,7 +263,8 @@ export async function fetchDoubanList(
   params: DoubanListParams,
   proxyUrl: string,
   useTencentCDN = false,
-  useAliCDN = false
+  useAliCDN = false,
+  useUnified = false
 ): Promise<DoubanResult> {
   const { tag, type, pageLimit = 20, pageStart = 0 } = params;
 
@@ -276,7 +285,9 @@ export async function fetchDoubanList(
     throw new Error('pageStart 不能小于 0');
   }
 
-  const target = useTencentCDN
+  const target = useUnified
+    ? `https://movie.douban.cmliussss.net/j/search_subjects?type=${type}&tag=${tag}&sort=recommend&page_limit=${pageLimit}&page_start=${pageStart}`
+    : useTencentCDN
     ? `https://movie.douban.cmliussss.net/j/search_subjects?type=${type}&tag=${tag}&sort=recommend&page_limit=${pageLimit}&page_start=${pageStart}`
     : useAliCDN
       ? `https://movie.douban.cmliussss.com/j/search_subjects?type=${type}&tag=${tag}&sort=recommend&page_limit=${pageLimit}&page_start=${pageStart}`
@@ -285,7 +296,7 @@ export async function fetchDoubanList(
   try {
     const response = await fetchWithTimeout(
       target,
-      useTencentCDN || useAliCDN ? '' : proxyUrl
+      useUnified || useTencentCDN || useAliCDN ? '' : proxyUrl
     );
 
     if (!response.ok) {
@@ -357,6 +368,8 @@ export async function getDoubanRecommends(
       return fetchDoubanRecommends(params, '', true, false);
     case 'cmliussss-cdn-ali':
       return fetchDoubanRecommends(params, '', false, true);
+    case 'cmliussss-unified':
+      return fetchDoubanRecommends(params, '', false, false, true);
     case 'cors-anywhere':
       return fetchDoubanRecommends(params, 'https://cors-anywhere.com/');
     case 'custom':
@@ -375,7 +388,8 @@ async function fetchDoubanRecommends(
   params: DoubanRecommendsParams,
   proxyUrl: string,
   useTencentCDN = false,
-  useAliCDN = false
+  useAliCDN = false,
+  useUnified = false
 ): Promise<DoubanResult> {
   const { kind, pageLimit = 20, pageStart = 0 } = params;
   let { category, format, region, year, platform, sort, label } = params;
@@ -429,7 +443,9 @@ async function fetchDoubanRecommends(
     tags.push(platform);
   }
 
-  const baseUrl = useTencentCDN
+  const baseUrl = useUnified
+    ? `https://img.doubanio.cmliussss.net/rexxar/api/v2/${kind}/recommend`
+    : useTencentCDN
     ? `https://m.douban.cmliussss.net/rexxar/api/v2/${kind}/recommend`
     : useAliCDN
       ? `https://m.douban.cmliussss.com/rexxar/api/v2/${kind}/recommend`
@@ -450,7 +466,7 @@ async function fetchDoubanRecommends(
   try {
     const response = await fetchWithTimeout(
       target,
-      useTencentCDN || useAliCDN ? '' : proxyUrl
+      useUnified || useTencentCDN || useAliCDN ? '' : proxyUrl
     );
 
     if (!response.ok) {
