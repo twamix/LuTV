@@ -4,9 +4,12 @@ import Hls from 'hls.js';
 
 function getDoubanImageProxyConfig(): {
   proxyType:
+  | 'direct'
   | 'server'
+  | 'img3'
   | 'cmliussss-cdn-tencent'
   | 'cmliussss-cdn-ali'
+  | 'baidu'
   | 'custom';
   proxyUrl: string;
 } {
@@ -15,9 +18,6 @@ function getDoubanImageProxyConfig(): {
     (window as any).RUNTIME_CONFIG?.DOUBAN_IMAGE_PROXY_TYPE ||
     'cmliussss-cdn-tencent';
   // 兼容历史数据：直连和豆瓣官方精品 CDN 统一使用服务器代理
-  if (doubanImageProxyType === 'direct' || doubanImageProxyType === 'img3') {
-    doubanImageProxyType = 'server';
-  }
   const doubanImageProxy =
     localStorage.getItem('doubanImageProxyUrl') ||
     (window as any).RUNTIME_CONFIG?.DOUBAN_IMAGE_PROXY ||
@@ -43,6 +43,10 @@ export function processImageUrl(originalUrl: string): string {
   switch (proxyType) {
     case 'server':
       return `/api/image-proxy?url=${encodeURIComponent(originalUrl)}`;
+    case 'direct':
+      return originalUrl;
+    case 'img3':
+      return originalUrl.replace(/img\d+\.doubanio\.com/g, 'img3.doubanio.com');
     case 'cmliussss-cdn-tencent':
       return originalUrl.replace(
         /img\d+\.doubanio\.com/g,
@@ -53,6 +57,8 @@ export function processImageUrl(originalUrl: string): string {
         /img\d+\.doubanio\.com/g,
         'img.doubanio.cmliussss.com'
       );
+    case 'baidu':
+      return `https://image.baidu.com/search/down?url=${encodeURIComponent(originalUrl)}`;
     case 'custom':
       return `${proxyUrl}${encodeURIComponent(originalUrl)}`;
     default:

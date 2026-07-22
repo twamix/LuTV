@@ -77,26 +77,24 @@ export const UserMenu: React.FC = () => {
 
   // 豆瓣数据源选项
   const doubanDataSourceOptions = [
-    { value: 'direct', label: '直连（服务器直接请求豆瓣）' },
-    { value: 'cors-proxy-zwei', label: 'Cors Proxy By Zwei' },
-    {
-      value: 'cmliussss-cdn-tencent',
-      label: '豆瓣 CDN By CMLiussss（腾讯云）',
-    },
-    { value: 'cmliussss-cdn-ali', label: '豆瓣 CDN By CMLiussss（阿里云）' },
-    { value: 'custom', label: '自定义代理' },
-  ];
+  { value: 'direct', label: '直连（服务器直接请求豆瓣）' },
+  { value: 'cors-proxy-zwei', label: 'Cors Proxy By Zwei' },
+  { value: 'cmliussss-cdn-tencent', label: '豆瓣 CDN By CMLiussss（腾讯云）' },
+  { value: 'cmliussss-cdn-ali', label: '豆瓣 CDN By CMLiussss（阿里云）' },
+  { value: 'cmliussss-unified', label: '豆瓣 CDN By CMLiussss（统一域名）' },
+  { value: 'custom', label: '自定义代理' },
+];
 
   // 豆瓣图片代理选项
   const doubanImageProxyTypeOptions = [
-    { value: 'server', label: '服务器代理（由服务器代理请求豆瓣）' },
-    {
-      value: 'cmliussss-cdn-tencent',
-      label: '豆瓣 CDN By CMLiussss（腾讯云）',
-    },
-    { value: 'cmliussss-cdn-ali', label: '豆瓣 CDN By CMLiussss（阿里云）' },
-    { value: 'custom', label: '自定义代理' },
-  ];
+  { value: 'direct', label: '直连（浏览器直接请求豆瓣）' },
+  { value: 'server', label: '服务器代理（由服务器代理请求豆瓣）' },
+  { value: 'img3', label: '豆瓣官方精品 CDN（阿里云）' },
+  { value: 'cmliussss-cdn-tencent', label: '豆瓣 CDN By CMLiussss（腾讯云）' },
+  { value: 'cmliussss-cdn-ali', label: '豆瓣 CDN By CMLiussss（阿里云）' },
+  { value: 'baidu', label: '百度图片代理（境内CDN，Chrome可能触发下载）' },
+  { value: 'custom', label: '自定义代理' },
+];
 
   // 修改密码相关状态
   const [newPassword, setNewPassword] = useState('');
@@ -159,12 +157,10 @@ export const UserMenu: React.FC = () => {
       const defaultDoubanImageProxyType =
         (window as any).RUNTIME_CONFIG?.DOUBAN_IMAGE_PROXY_TYPE || 'cmliussss-cdn-tencent';
       // 兼容历史数据：直连和豆瓣官方精品 CDN 统一使用服务器代理
-      const normalizeImageProxyType = (type: string) =>
-        type === 'direct' || type === 'img3' ? 'server' : type;
       if (savedDoubanImageProxyType !== null) {
-        setDoubanImageProxyType(normalizeImageProxyType(savedDoubanImageProxyType));
+        setDoubanImageProxyType(savedDoubanImageProxyType);
       } else if (defaultDoubanImageProxyType) {
-        setDoubanImageProxyType(normalizeImageProxyType(defaultDoubanImageProxyType));
+        setDoubanImageProxyType(defaultDoubanImageProxyType);
       }
 
       const savedDoubanImageProxyUrl = localStorage.getItem(
@@ -415,6 +411,7 @@ export const UserMenu: React.FC = () => {
         };
       case 'cmliussss-cdn-tencent':
       case 'cmliussss-cdn-ali':
+      case 'cmliussss-unified':
         return {
           text: 'Thanks to @CMLiussss',
           url: 'https://github.com/cmliu',
@@ -431,9 +428,6 @@ export const UserMenu: React.FC = () => {
       (window as any).RUNTIME_CONFIG?.DOUBAN_PROXY || '';
     let defaultDoubanImageProxyType =
       (window as any).RUNTIME_CONFIG?.DOUBAN_IMAGE_PROXY_TYPE || 'cmliussss-cdn-tencent';
-    if (defaultDoubanImageProxyType === 'direct' || defaultDoubanImageProxyType === 'img3') {
-      defaultDoubanImageProxyType = 'server';
-    }
     const defaultDoubanImageProxyUrl =
       (window as any).RUNTIME_CONFIG?.DOUBAN_IMAGE_PROXY || '';
     const defaultFluidSearch =

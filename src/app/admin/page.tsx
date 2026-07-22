@@ -3489,26 +3489,24 @@ const SiteConfigComponent = ({ config, refreshConfig }: { config: AdminConfig | 
 
   // 豆瓣数据源选项
   const doubanDataSourceOptions = [
-    { value: 'direct', label: '直连（服务器直接请求豆瓣）' },
-    { value: 'cors-proxy-zwei', label: 'Cors Proxy By Zwei' },
-    {
-      value: 'cmliussss-cdn-tencent',
-      label: '豆瓣 CDN By CMLiussss（腾讯云）',
-    },
-    { value: 'cmliussss-cdn-ali', label: '豆瓣 CDN By CMLiussss（阿里云）' },
-    { value: 'custom', label: '自定义代理' },
-  ];
+  { value: 'direct', label: '直连（服务器直接请求豆瓣）' },
+  { value: 'cors-proxy-zwei', label: 'Cors Proxy By Zwei' },
+  { value: 'cmliussss-cdn-tencent', label: '豆瓣 CDN By CMLiussss（腾讯云）' },
+  { value: 'cmliussss-cdn-ali', label: '豆瓣 CDN By CMLiussss（阿里云）' },
+  { value: 'cmliussss-unified', label: '豆瓣 CDN By CMLiussss（统一域名）' },
+  { value: 'custom', label: '自定义代理' },
+];
 
   // 豆瓣图片代理选项
   const doubanImageProxyTypeOptions = [
-    { value: 'server', label: '服务器代理（由服务器代理请求豆瓣）' },
-    {
-      value: 'cmliussss-cdn-tencent',
-      label: '豆瓣 CDN By CMLiussss（腾讯云）',
-    },
-    { value: 'cmliussss-cdn-ali', label: '豆瓣 CDN By CMLiussss（阿里云）' },
-    { value: 'custom', label: '自定义代理' },
-  ];
+  { value: 'direct', label: '直连（浏览器直接请求豆瓣）' },
+  { value: 'server', label: '服务器代理（由服务器代理请求豆瓣）' },
+  { value: 'img3', label: '豆瓣官方精品 CDN（阿里云）' },
+  { value: 'cmliussss-cdn-tencent', label: '豆瓣 CDN By CMLiussss（腾讯云）' },
+  { value: 'cmliussss-cdn-ali', label: '豆瓣 CDN By CMLiussss（阿里云）' },
+  { value: 'baidu', label: '百度图片代理（境内CDN，Chrome可能触发下载）' },
+  { value: 'custom', label: '自定义代理' },
+];
 
   // 获取感谢信息
   const getThanksInfo = (dataSource: string) => {
@@ -3520,6 +3518,7 @@ const SiteConfigComponent = ({ config, refreshConfig }: { config: AdminConfig | 
         };
       case 'cmliussss-cdn-tencent':
       case 'cmliussss-cdn-ali':
+      case 'cmliussss-unified':
         return {
           text: 'Thanks to @CMLiussss',
           url: 'https://github.com/cmliu',
@@ -3535,10 +3534,7 @@ const SiteConfigComponent = ({ config, refreshConfig }: { config: AdminConfig | 
         ...config.SiteConfig,
         DoubanProxyType: config.SiteConfig.DoubanProxyType || 'cmliussss-cdn-tencent',
         DoubanProxy: config.SiteConfig.DoubanProxy || '',
-        DoubanImageProxyType:
-          (config.SiteConfig.DoubanImageProxyType === 'direct' || config.SiteConfig.DoubanImageProxyType === 'img3')
-            ? 'server'
-            : (config.SiteConfig.DoubanImageProxyType || 'cmliussss-cdn-tencent'),
+        DoubanImageProxyType: config.SiteConfig.DoubanImageProxyType || 'cmliussss-cdn-tencent',
         DoubanImageProxy: config.SiteConfig.DoubanImageProxy || '',
         DisableYellowFilter: config.SiteConfig.DisableYellowFilter || false,
         FluidSearch: config.SiteConfig.FluidSearch || true,
