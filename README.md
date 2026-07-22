@@ -1,10 +1,10 @@
 # MoonTV
 
 <div align="center">
-  <img src="public/logo.png" alt="MoonTV Logo" width="120">
+  <img src="public/logo.png" alt="LuTV Logo" width="120">
 </div>
 
-> 🎬 **MoonTV** 是一个开箱即用的、跨平台的影视聚合播放器。它基于 **Next.js 14** + **Tailwind&nbsp;CSS** + **TypeScript** 构建，支持多资源搜索、在线播放、收藏同步、播放记录、云端存储，让你可以随时随地畅享海量免费影视内容。
+> 🎬 LuTV 是基于 MoonTV/LunaTv 深度二次开发的全功能影视聚合播放平台。在原版基础上新增了 YouTube 集成、网盘搜索、AI 推荐、短剧功能、IPTV 直播、Bangumi 动漫、播放统计、弹幕系统等 60+ 重大功能增强，打造极致的在线观影体验。
 
 <div align="center">
 
@@ -89,9 +89,9 @@
 
 ```yml
 services:
-  moontv-core:
-    image: ghcr.io/moontechlab/lunatv:latest
-    container_name: moontv-core
+  lutv:
+    image: ghcr.io/twamix/lutv:latest
+    container_name: lutv
     restart: on-failure
     ports:
       - '3000:3000'
@@ -123,9 +123,9 @@ volumes:
 
 ```yml
 services:
-  moontv-core:
-    image: ghcr.io/moontechlab/lunatv:latest
-    container_name: moontv-core
+  lutv:
+    image: ghcr.io/twamix/lutv:latest
+    container_name: lutv
     restart: on-failure
     ports:
       - '3000:3000'
@@ -159,9 +159,9 @@ networks:
 3. 使用如下 docker compose
 ```yml
 services:
-  moontv-core:
-    image: ghcr.io/moontechlab/lunatv:latest
-    container_name: moontv-core
+  lutv:
+    image: ghcr.io/twamix/lutv:latest
+    container_name: lutv
     restart: on-failure
     ports:
       - '3000:3000'
@@ -197,7 +197,7 @@ Zeabur 是一站式云端部署平台，使用预构建的 Docker 镜像可以�
 
 2. **添加 LunaTV 服务**
    - 点击 "Add Service" > "Docker Images"
-   - 输入镜像名称：`ghcr.io/moontechlab/lunatv:latest`
+   - 输入镜像名称：`ghcr.io/twamix/lutv:latest`
    - 配置端口：`3000` (HTTP)
 
 3. **配置环境变量**
@@ -402,7 +402,3 @@ v100.0.0 以上版本可配合 [Selene](https://github.com/MoonTechLab/Selene) �
 - [Zwei](https://github.com/bestzwei) — 提供获取豆瓣数据的 cors proxy
 - [CMLiussss](https://github.com/cmliu) — 提供豆瓣 CDN 服务
 - 感谢所有提供免费影视接口的站点。
-
-## Star History
-
-[![Star History Chart](https://api.star-history.com/svg?repos=MoonTechLab/LunaTV&type=Date)](https://www.star-history.com/#MoonTechLab/LunaTV&Date)
