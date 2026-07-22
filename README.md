@@ -1,4 +1,4 @@
-# MoonTV
+# LuTV
 
 <div align="center">
   <img src="public/logo.png" alt="LuTV Logo" width="120">
