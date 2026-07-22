@@ -681,7 +681,10 @@ export const UserMenu: React.FC = () => {
                 {/* 自定义下拉选择框 */}
                 <button
                   type='button'
-                  onClick={() => setIsDoubanDropdownOpen(!isDoubanDropdownOpen)}
+                  onClick={() => {
+                    setIsDoubanDropdownOpen(!isDoubanDropdownOpen);
+                    setIsDoubanImageProxyDropdownOpen(false);
+                  }}
                   className='w-full px-3 py-2.5 pr-10 border border-gray-300 dark:border-gray-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-200 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 shadow-sm hover:border-gray-400 dark:hover:border-gray-500 text-left'
                 >
                   {
@@ -782,11 +785,12 @@ export const UserMenu: React.FC = () => {
                 {/* 自定义下拉选择框 */}
                 <button
                   type='button'
-                  onClick={() =>
+                  onClick={() => {
                     setIsDoubanImageProxyDropdownOpen(
                       !isDoubanImageProxyDropdownOpen
-                    )
-                  }
+                    );
+                    setIsDoubanDropdownOpen(false);
+                  }}
                   className='w-full px-3 py-2.5 pr-10 border border-gray-300 dark:border-gray-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-200 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 shadow-sm hover:border-gray-400 dark:hover:border-gray-500 text-left'
                 >
                   {
@@ -799,7 +803,7 @@ export const UserMenu: React.FC = () => {
                 {/* 下拉箭头 */}
                 <div className='absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none'>
                   <ChevronDown
-                    className={`w-4 h-4 text-gray-400 dark:text-gray-500 transition-transform duration-200 ${isDoubanDropdownOpen ? 'rotate-180' : ''
+                    className={`w-4 h-4 text-gray-400 dark:text-gray-500 transition-transform duration-200 ${isDoubanImageProxyDropdownOpen ? 'rotate-180' : ''
                       }`}
                   />
                 </div>
