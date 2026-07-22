@@ -4,7 +4,7 @@
   <img src="public/logo.png" alt="LuTV Logo" width="120">
 </div>
 
-> 🎬 LuTV 是基于 MoonTV/LunaTv 深度二次开发的全功能影视聚合播放平台。在原版基础上新增了 YouTube 集成、网盘搜索、AI 推荐、短剧功能、IPTV 直播、Bangumi 动漫、播放统计、弹幕系统等 60+ 重大功能增强，打造极致的在线观影体验。
+> 🎬 LuTV 是基于 MoonTV/LunaTV 深度二次开发的全功能影视聚合播放平台。在原版基础上新增了 YouTube 集成、网盘搜索、AI 推荐、短剧功能、IPTV 直播、Bangumi 动漫、播放统计、弹幕系统等 60+ 重大功能增强，打造极致的在线观影体验。
 
 <div align="center">
 
