@@ -372,6 +372,9 @@ export function configSelfCheck(adminConfig: AdminConfig): AdminConfig {
     banned: false,
     enabledApis: originOwnerCfg?.enabledApis || undefined,
     tags: originOwnerCfg?.tags || undefined,
+    tvboxToken: originOwnerCfg?.tvboxToken || undefined,
+    tvboxEnabledSources: originOwnerCfg?.tvboxEnabledSources || undefined,
+    showAdultContent: originOwnerCfg?.showAdultContent || undefined,
   });
 
   // 采集源去重

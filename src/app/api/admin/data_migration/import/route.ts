@@ -80,8 +80,26 @@ export async function POST(req: NextRequest) {
     // 开始导入数据 - 先清空现有数据
     await db.clearAllData();
 
-    // 导入管理员配置
+    // 导入管理员配置。先保存用户级 TVBox 字段，避免 configSelfCheck 重建站长用户时丢失。
+    const importedUsers = importData.data.adminConfig.UserConfig?.Users || [];
+    const importedTvboxUsers = new Map<string, { tvboxToken?: string; tvboxEnabledSources?: string[] }>();
+    for (const user of importedUsers) {
+      if (user?.username && (user.tvboxToken || Array.isArray(user.tvboxEnabledSources))) {
+        importedTvboxUsers.set(user.username, {
+          tvboxToken: user.tvboxToken,
+          tvboxEnabledSources: user.tvboxEnabledSources,
+        });
+      }
+    }
+
     importData.data.adminConfig = configSelfCheck(importData.data.adminConfig);
+    for (const user of importData.data.adminConfig.UserConfig?.Users || []) {
+      const imported = importedTvboxUsers.get(user.username);
+      if (imported) {
+        user.tvboxToken = imported.tvboxToken;
+        user.tvboxEnabledSources = imported.tvboxEnabledSources;
+      }
+    }
     await db.saveAdminConfig(importData.data.adminConfig);
     await setCachedConfig(importData.data.adminConfig);
 
