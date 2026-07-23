@@ -33,7 +33,7 @@ services:
       # 站长密码
       - PASSWORD=admin123
       # 站点名称（可选）
-      - NEXT_PUBLIC_SITE_NAME=MoonTV
+      - NEXT_PUBLIC_SITE_NAME=LuTV
 
 volumes:
   redis-data:

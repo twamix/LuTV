@@ -1208,6 +1208,25 @@ const UserConfig = ({ config, role, refreshConfig }: UserConfigProps) => {
                         </td>
                         <td className='px-6 py-4 whitespace-nowrap'>
                           <div className='flex items-center space-x-2'>
+                            <span className='text-sm text-gray-900 dark:text-gray-100'>
+                              {user.enabledApis && user.enabledApis.length > 0
+                                ? `${user.enabledApis.length} 个源`
+                                : '无限制'}
+                            </span>
+                            {(role === 'owner' ||
+                              (role === 'admin' &&
+                                (user.role === 'user' || user.username === currentUsername))) && (
+                              <button
+                                onClick={() => handleConfigureUserApis(user)}
+                                className={buttonStyles.roundedPrimary}
+                              >
+                                配置
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                        <td className='px-6 py-4 whitespace-nowrap'>
+                          <div className='flex items-center space-x-2'>
                             <TVBoxTokenCell tvboxToken={user.tvboxToken} />
                             {(role === 'owner' ||
                               (role === 'admin' &&
@@ -1226,27 +1245,6 @@ const UserConfig = ({ config, role, refreshConfig }: UserConfigProps) => {
                                 配置
                               </button>
                             )}
-                          </div>
-                        </td>
-                        <td className='px-6 py-4 whitespace-nowrap'>
-                          <div className='flex items-center space-x-2'>
-                            <span className='text-sm text-gray-900 dark:text-gray-100'>
-                              {user.enabledApis && user.enabledApis.length > 0
-                                ? `${user.enabledApis.length} 个源`
-                                : '无限制'}
-                            </span>
-                            {/* 配置采集源权限按钮 */}
-                            {(role === 'owner' ||
-                              (role === 'admin' &&
-                                (user.role === 'user' ||
-                                  user.username === currentUsername))) && (
-                                <button
-                                  onClick={() => handleConfigureUserApis(user)}
-                                  className={buttonStyles.roundedPrimary}
-                                >
-                                  配置
-                                </button>
-                              )}
                           </div>
                         </td>
                         <td className='px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2'>
