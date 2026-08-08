@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 import { getAuthInfoFromCookie } from '@/lib/auth';
-import { API_CONFIG, getAvailableApiSites } from '@/lib/config';
+import { API_CONFIG, appendApiQuery, getAvailableApiSites } from '@/lib/config';
 import { recordRequest, getDbQueryCount, resetDbQueryCount } from '@/lib/performance-monitor';
 
 export const runtime = 'nodejs';
@@ -81,9 +81,9 @@ export async function GET(request: NextRequest) {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 15000);
     // 苹果CMS常见列表参数：ac=videolist&t=<typeId>&pg=<page>
-    const url = `${source.api}?ac=videolist&t=${encodeURIComponent(
+    const url = appendApiQuery(source.api, `ac=videolist&t=${encodeURIComponent(
       typeId
-    )}&pg=${page}`;
+    )}&pg=${page}`);
     const res = await fetch(url, {
       headers: API_CONFIG.search.headers,
       signal: controller.signal,

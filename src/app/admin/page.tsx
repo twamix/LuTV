@@ -2095,6 +2095,17 @@ const VideoSourceConfig = ({
     from: 'config',
   });
 
+  const [videoProxySettings, setVideoProxySettings] = useState({
+    enabled: false,
+    proxyUrl: 'https://corsapi.smone.workers.dev',
+  });
+  const [proxyStatus, setProxyStatus] = useState<{
+    healthy: boolean;
+    responseTime?: number;
+    error?: string;
+    lastCheck?: string;
+  } | null>(null);
+
   // 批量操作相关状态
   const [selectedSources, setSelectedSources] = useState<Set<string>>(new Set());
 
@@ -2154,7 +2165,59 @@ const VideoSourceConfig = ({
       // 重置选择状态
       setSelectedSources(new Set());
     }
+    if (config?.VideoProxyConfig) {
+      setVideoProxySettings({
+        enabled: config.VideoProxyConfig.enabled ?? false,
+        proxyUrl: config.VideoProxyConfig.proxyUrl || 'https://corsapi.smone.workers.dev',
+      });
+    }
   }, [config]);
+
+  const handleSaveVideoProxy = async () => {
+    if (videoProxySettings.enabled) {
+      try { new URL(videoProxySettings.proxyUrl); } catch {
+        showAlert({ type: 'error', title: '配置错误', message: '代理URL格式不正确', showConfirm: true });
+        return;
+      }
+    }
+    try {
+      await withLoading('saveVideoProxy', async () => {
+        const response = await fetch('/api/admin/video-proxy', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(videoProxySettings),
+        });
+        if (!response.ok) {
+          const data = await response.json().catch(() => ({}));
+          throw new Error(data.error || `保存失败: ${response.status}`);
+        }
+        await refreshConfig();
+      });
+      showAlert({ type: 'success', title: '保存成功', message: '视频源代理配置已保存', timer: 2000 });
+    } catch (error) {
+      showAlert({ type: 'error', title: '保存失败', message: error instanceof Error ? error.message : '保存失败', showConfirm: true });
+    }
+  };
+
+  const handleCheckProxyStatus = async () => {
+    try {
+      await withLoading('checkProxyStatus', async () => {
+        const response = await fetch('/api/proxy-status', { cache: 'no-store' });
+        if (!response.ok) throw new Error('检测失败');
+        const data = await response.json();
+        const health = data.videoProxy.health;
+        setProxyStatus({ ...health, lastCheck: new Date().toLocaleString('zh-CN') });
+        showAlert({
+          type: health.healthy ? 'success' : 'warning',
+          title: health.healthy ? '代理正常' : '代理异常',
+          message: health.healthy ? `响应时间: ${health.responseTime}ms` : (health.error || '无法连接到 Worker'),
+          timer: 3000,
+        });
+      });
+    } catch (error) {
+      showAlert({ type: 'error', title: '检测失败', message: error instanceof Error ? error.message : '检测失败', showConfirm: true });
+    }
+  };
 
   // 通用 API 请求
   const callSourceApi = async (body: Record<string, any>) => {
@@ -2556,6 +2619,27 @@ const VideoSourceConfig = ({
 
   return (
     <div className='space-y-6'>
+      <div className='border border-blue-200 dark:border-blue-800 rounded-lg p-4 bg-blue-50/50 dark:bg-blue-900/10'>
+        <div className='flex items-center justify-between gap-4'>
+          <div>
+            <h3 className='text-lg font-semibold text-gray-900 dark:text-gray-100'>Cloudflare Worker 代理加速</h3>
+            <p className='text-sm text-gray-600 dark:text-gray-400 mt-1'>为网页搜索、源浏览和视频源 API 请求提供代理加速。</p>
+          </div>
+          <label className='relative inline-flex items-center cursor-pointer'>
+            <input type='checkbox' className='sr-only peer' checked={videoProxySettings.enabled} onChange={(e) => setVideoProxySettings((prev) => ({ ...prev, enabled: e.target.checked }))} />
+            <div className="w-11 h-6 bg-gray-200 dark:bg-gray-700 peer-checked:bg-blue-600 rounded-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-full" />
+          </label>
+        </div>
+        {videoProxySettings.enabled && <div className='mt-4 space-y-3'>
+          <input type='url' value={videoProxySettings.proxyUrl} onChange={(e) => setVideoProxySettings((prev) => ({ ...prev, proxyUrl: e.target.value }))} placeholder='https://your-worker.workers.dev' className='w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100' />
+          <p className='text-xs text-gray-500 dark:text-gray-400'>默认地址：https://corsapi.smone.workers.dev；需支持 /p/sourceId?url=... 格式。</p>
+        </div>}
+        <div className='flex justify-end gap-2 mt-4'>
+          <button onClick={handleCheckProxyStatus} disabled={!videoProxySettings.enabled || isLoading('checkProxyStatus')} className={buttonStyles.secondary}>{isLoading('checkProxyStatus') ? '检测中...' : '检测代理状态'}</button>
+          <button onClick={handleSaveVideoProxy} disabled={isLoading('saveVideoProxy')} className={buttonStyles.primary}>{isLoading('saveVideoProxy') ? '保存中...' : '保存代理配置'}</button>
+        </div>
+        {proxyStatus && <p className={`mt-3 text-sm ${proxyStatus.healthy ? 'text-green-700 dark:text-green-400' : 'text-red-700 dark:text-red-400'}`}>{proxyStatus.healthy ? `代理正常（${proxyStatus.responseTime}ms）` : `代理异常：${proxyStatus.error || '未知错误'}`}</p>}
+      </div>
       {/* 添加视频源表单 */}
       <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4'>
         <h4 className='text-sm font-medium text-gray-700 dark:text-gray-300'>

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 import { getAuthInfoFromCookie } from '@/lib/auth';
-import { API_CONFIG, getAvailableApiSites } from '@/lib/config';
+import { API_CONFIG, appendApiQuery, getAvailableApiSites } from '@/lib/config';
 
 export const runtime = 'nodejs';
 
@@ -36,9 +36,9 @@ export async function GET(request: NextRequest) {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 15000);
     // 常见搜索参数：ac=videolist&wd=<kw>&pg=<page>
-    const url = `${source.api}?ac=videolist&wd=${encodeURIComponent(
+    const url = appendApiQuery(source.api, `ac=videolist&wd=${encodeURIComponent(
       q
-    )}&pg=${page}`;
+    )}&pg=${page}`);
     const res = await fetch(url, {
       headers: API_CONFIG.search.headers,
       signal: controller.signal,

@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { API_CONFIG, ApiSite, getConfig } from '@/lib/config';
+import { API_CONFIG, ApiSite, appendApiQuery, getConfig } from '@/lib/config';
 import { getCachedSearchPage, setCachedSearchPage } from '@/lib/search-cache';
 import { SearchResult } from '@/lib/types';
 import { cleanHtmlTags } from '@/lib/utils';
@@ -141,8 +141,7 @@ export async function searchFromApi(
 ): Promise<SearchResult[]> {
   try {
     const apiBaseUrl = apiSite.api;
-    const apiUrl =
-      apiBaseUrl + API_CONFIG.search.path + encodeURIComponent(query);
+    const apiUrl = appendApiQuery(apiBaseUrl, `ac=videolist&wd=${encodeURIComponent(query)}`);
 
     // 使用新的缓存搜索函数处理第一页
     const firstPageResult = await searchWithCache(apiSite, query, 1, apiUrl, 8000);
@@ -162,11 +161,10 @@ export async function searchFromApi(
       const additionalPagePromises = [];
 
       for (let page = 2; page <= pagesToFetch + 1; page++) {
-        const pageUrl =
-          apiBaseUrl +
-          API_CONFIG.search.pagePath
-            .replace('{query}', encodeURIComponent(query))
-            .replace('{page}', page.toString());
+        const pageUrl = appendApiQuery(
+          apiBaseUrl,
+          `ac=videolist&wd=${encodeURIComponent(query)}&pg=${page}`
+        );
 
         const pagePromise = (async () => {
           // 使用新的缓存搜索函数处理分页
@@ -205,7 +203,7 @@ export async function getDetailFromApi(
     return handleSpecialSourceDetail(id, apiSite);
   }
 
-  const detailUrl = `${apiSite.api}${API_CONFIG.detail.path}${id}`;
+  const detailUrl = appendApiQuery(apiSite.api, `ac=videolist&ids=${encodeURIComponent(id)}`);
 
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 10000);

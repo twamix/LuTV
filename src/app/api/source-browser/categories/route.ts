@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 import { getAuthInfoFromCookie } from '@/lib/auth';
-import { API_CONFIG, getAvailableApiSites } from '@/lib/config';
+import { API_CONFIG, appendApiQuery, getAvailableApiSites } from '@/lib/config';
 
 export const runtime = 'nodejs';
 
@@ -30,7 +30,7 @@ export async function GET(request: NextRequest) {
 
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 10000);
-    const url = `${source.api}?ac=list`;
+    const url = appendApiQuery(source.api, 'ac=list');
     const res = await fetch(url, {
       headers: API_CONFIG.search.headers,
       signal: controller.signal,

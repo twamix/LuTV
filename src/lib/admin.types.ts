@@ -72,6 +72,7 @@ export interface AdminConfig {
     rateLimit: number;
   };
   TVBoxProxyConfig?: { enabled: boolean; proxyUrl: string };
+  VideoProxyConfig?: { enabled: boolean; proxyUrl: string };
   CustomSpiderJar?: string;
 }
 

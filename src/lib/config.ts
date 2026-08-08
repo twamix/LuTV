@@ -238,6 +238,10 @@ async function getInitConfig(configFile: string, subConfig: {
       enabled: false,
       proxyUrl: process.env.NEXT_PUBLIC_CORSAPI_URL || 'https://corsapi.smone.workers.dev',
     },
+    VideoProxyConfig: {
+      enabled: false,
+      proxyUrl: process.env.NEXT_PUBLIC_CORSAPI_URL || 'https://corsapi.smone.workers.dev',
+    },
   };
 
   // 补充用户信息
@@ -343,6 +347,12 @@ export function configSelfCheck(adminConfig: AdminConfig): AdminConfig {
   if (!adminConfig.LiveConfig || !Array.isArray(adminConfig.LiveConfig)) {
     adminConfig.LiveConfig = [];
   }
+  if (!adminConfig.VideoProxyConfig) {
+    adminConfig.VideoProxyConfig = {
+      enabled: false,
+      proxyUrl: process.env.NEXT_PUBLIC_CORSAPI_URL || 'https://corsapi.smone.workers.dev',
+    };
+  }
 
   // 站长变更自检
   const ownerUser = process.env.USERNAME;
@@ -436,24 +446,43 @@ export async function getAvailableApiSites(user?: string): Promise<ApiSite[]> {
   const config = await getConfig();
   const allApiSites = config.SourceConfig.filter((s) => !s.disabled);
 
+  const applyVideoProxy = (sites: ApiSite[]): ApiSite[] => {
+    const proxyConfig = config.VideoProxyConfig;
+    if (!proxyConfig?.enabled || !proxyConfig.proxyUrl) return sites;
+    const proxyBase = proxyConfig.proxyUrl.replace(/\/$/, '');
+    return sites.map((site) => {
+      let realApi = site.api;
+      const match = realApi.match(/[?&]url=([^&]+)/);
+      if (match) realApi = decodeURIComponent(match[1]);
+      let sourceId = site.key || 'source';
+      try {
+        const host = new URL(realApi).hostname.split('.');
+        sourceId = host[0].replace(/zyapi$|zy$|api$/i, '').replace(/[^a-z0-9]/gi, '') || sourceId;
+      } catch {
+        sourceId = sourceId.replace(/[^a-z0-9]/gi, '') || 'source';
+      }
+      return { ...site, api: `${proxyBase}/p/${sourceId}?url=${encodeURIComponent(realApi)}` };
+    });
+  };
+
   if (!user) {
-    return allApiSites;
+    return applyVideoProxy(allApiSites);
   }
 
   const userConfig = config.UserConfig.Users.find((u) => u.username === user);
   if (!userConfig) {
-    return allApiSites;
+    return applyVideoProxy(allApiSites);
   }
 
   // 优先根据用户自己的 enabledApis 配置查找
   if (userConfig.enabledApis && userConfig.enabledApis.length > 0) {
     const userApiSitesSet = new Set(userConfig.enabledApis);
-    return allApiSites.filter((s) => userApiSitesSet.has(s.key)).map((s) => ({
+    return applyVideoProxy(allApiSites.filter((s) => userApiSitesSet.has(s.key)).map((s) => ({
       key: s.key,
       name: s.name,
       api: s.api,
       detail: s.detail,
-    }));
+    })));
   }
 
   // 如果没有 enabledApis 配置，则根据 tags 查找
@@ -469,17 +498,22 @@ export async function getAvailableApiSites(user?: string): Promise<ApiSite[]> {
     });
 
     if (enabledApisFromTags.size > 0) {
-      return allApiSites.filter((s) => enabledApisFromTags.has(s.key)).map((s) => ({
+      return applyVideoProxy(allApiSites.filter((s) => enabledApisFromTags.has(s.key)).map((s) => ({
         key: s.key,
         name: s.name,
         api: s.api,
         detail: s.detail,
-      }));
+      })));
     }
   }
 
   // 如果都没有配置，返回所有可用的 API 站点
-  return allApiSites;
+  return applyVideoProxy(allApiSites);
+}
+
+/** Append CMS query parameters without breaking a proxied source URL. */
+export function appendApiQuery(api: string, query: string): string {
+  return `${api}${api.includes('?') ? '&' : '?'}${query}`;
 }
 
 export function clearConfigCache(): void {

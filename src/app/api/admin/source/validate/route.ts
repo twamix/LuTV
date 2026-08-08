@@ -3,7 +3,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 import { getAuthInfoFromCookie } from '@/lib/auth';
-import { getConfig } from '@/lib/config';
+import { appendApiQuery, getAvailableApiSites } from '@/lib/config';
 import { API_CONFIG } from '@/lib/config';
 
 export const runtime = 'nodejs';
@@ -29,8 +29,7 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  const config = await getConfig();
-  const apiSites = config.SourceConfig;
+  const apiSites = await getAvailableApiSites(authInfo.username);
 
   // 共享状态
   let streamClosed = false;
@@ -72,7 +71,7 @@ export async function GET(request: NextRequest) {
       const validationPromises = apiSites.map(async (site) => {
         try {
           // 构建搜索URL，只获取第一页
-          const searchUrl = `${site.api}?ac=videolist&wd=${encodeURIComponent(searchKeyword)}`;
+          const searchUrl = appendApiQuery(site.api, `ac=videolist&wd=${encodeURIComponent(searchKeyword)}`);
 
           // 设置超时控制
           const controller = new AbortController();

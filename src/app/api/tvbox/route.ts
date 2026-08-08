@@ -2,7 +2,7 @@ import ipaddr from '@/lib/ipaddr-lite';
 import { NextRequest, NextResponse } from 'next/server';
 
 import { getSpiderJarFromBlob, uploadSpiderJarToBlob } from '@/lib/blobStorage';
-import { getConfig } from '@/lib/config';
+import { appendApiQuery, getConfig } from '@/lib/config';
 import { db } from '@/lib/db';
 import { getSpiderJar, getCandidates } from '@/lib/spiderJar';
 import { DEFAULT_USER_AGENT } from '@/lib/user-agent';
@@ -501,7 +501,7 @@ export async function GET(request: NextRequest) {
         categories = await categoriesLimiter.run(async () => {
           try {
             // 尝试获取源站的分类数据
-            const categoriesUrl = `${source.api}?ac=list`;
+            const categoriesUrl = appendApiQuery(source.api, 'ac=list');
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), 10000); // 10秒超时
 
