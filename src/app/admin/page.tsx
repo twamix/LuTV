@@ -3551,8 +3551,8 @@ const SiteConfigComponent = ({ config, refreshConfig }: { config: AdminConfig | 
 
   // 豆瓣图片代理选项
   const doubanImageProxyTypeOptions = [
-  { value: 'direct', label: '直连（浏览器直接请求豆瓣）' },
-  { value: 'server', label: '服务器代理（由服务器代理请求豆瓣）' },
+    { value: 'direct', label: '原图优先（失败自动切换）' },
+    { value: 'server', label: '服务器代理（失败自动切换）' },
   { value: 'img3', label: '豆瓣官方精品 CDN（阿里云）' },
   { value: 'cmliussss-cdn-tencent', label: '豆瓣 CDN By CMLiussss（腾讯云）' },
   { value: 'cmliussss-cdn-ali', label: '豆瓣 CDN By CMLiussss（阿里云）' },
@@ -3773,7 +3773,7 @@ const SiteConfigComponent = ({ config, refreshConfig }: { config: AdminConfig | 
             )}
           </div>
           <p className='mt-1 text-xs text-gray-500 dark:text-gray-400'>
-            选择获取豆瓣数据的方式
+              选择优先方式，失败时自动切换下一个
           </p>
 
           {/* 感谢信息 */}
@@ -3885,7 +3885,7 @@ const SiteConfigComponent = ({ config, refreshConfig }: { config: AdminConfig | 
             )}
           </div>
           <p className='mt-1 text-xs text-gray-500 dark:text-gray-400'>
-            选择获取豆瓣图片的方式
+              选择优先方式，失败时自动切换下一个
           </p>
 
           {/* 感谢信息 */}

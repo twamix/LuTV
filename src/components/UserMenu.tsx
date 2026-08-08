@@ -87,8 +87,8 @@ export const UserMenu: React.FC = () => {
 
   // 豆瓣图片代理选项
   const doubanImageProxyTypeOptions = [
-  { value: 'direct', label: '直连（浏览器直接请求豆瓣）' },
-  { value: 'server', label: '服务器代理（由服务器代理请求豆瓣）' },
+  { value: 'direct', label: '原图优先（失败自动切换）' },
+  { value: 'server', label: '服务器代理（失败自动切换）' },
   { value: 'img3', label: '豆瓣官方精品 CDN（阿里云）' },
   { value: 'cmliussss-cdn-tencent', label: '豆瓣 CDN By CMLiussss（腾讯云）' },
   { value: 'cmliussss-cdn-ali', label: '豆瓣 CDN By CMLiussss（阿里云）' },
@@ -194,6 +194,21 @@ export const UserMenu: React.FC = () => {
         setLiveDirectConnect(JSON.parse(savedLiveDirectConnect));
       }
     }
+  }, []);
+
+  useEffect(() => {
+    const handleAutoProxyChange = (event: Event) => {
+      const proxyType = (event as CustomEvent<{ proxyType?: string }>).detail
+        ?.proxyType;
+      if (proxyType) setDoubanDataSource(proxyType);
+    };
+
+    window.addEventListener('doubanProxyAutoChanged', handleAutoProxyChange);
+    return () =>
+      window.removeEventListener(
+        'doubanProxyAutoChanged',
+        handleAutoProxyChange
+      );
   }, []);
 
   // 版本检查
@@ -668,7 +683,7 @@ export const UserMenu: React.FC = () => {
                   豆瓣数据代理
                 </h4>
                 <p className='text-xs text-gray-500 dark:text-gray-400 mt-1'>
-                  选择获取豆瓣数据的方式
+                    选择优先方式，失败时自动切换下一个
                 </p>
               </div>
               <div className='relative' data-dropdown='douban-datasource'>
@@ -772,7 +787,7 @@ export const UserMenu: React.FC = () => {
                   豆瓣图片代理
                 </h4>
                 <p className='text-xs text-gray-500 dark:text-gray-400 mt-1'>
-                  选择获取豆瓣图片的方式
+                    选择优先方式，失败时自动切换下一个
                 </p>
               </div>
               <div className='relative' data-dropdown='douban-image-proxy'>

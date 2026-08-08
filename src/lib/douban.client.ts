@@ -62,7 +62,7 @@ async function fetchWithTimeout(
   proxyUrl: string
 ): Promise<Response> {
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 10000); // 10秒超时
+  const timeoutId = setTimeout(() => controller.abort(), 6000);
 
   // 检查是否使用代理
   const finalUrl =
@@ -92,8 +92,7 @@ async function fetchWithTimeout(
   }
 }
 
-function getDoubanProxyConfig(): {
-  proxyType:
+type DoubanProxyType =
   | 'direct'
   | 'cors-proxy-zwei'
   | 'cmliussss-cdn-tencent'
@@ -101,8 +100,24 @@ function getDoubanProxyConfig(): {
   | 'cmliussss-unified'
   | 'cors-anywhere'
   | 'custom';
+
+interface DoubanProxyConfig {
+  proxyType: DoubanProxyType;
   proxyUrl: string;
-} {
+}
+
+const AUTO_PROXY_ORDER: DoubanProxyType[] = [
+  'cmliussss-cdn-tencent',
+  'cmliussss-cdn-ali',
+  'cmliussss-unified',
+  'cors-proxy-zwei',
+  'direct',
+];
+
+const proxyFailureCooldown = new Map<DoubanProxyType, number>();
+const PROXY_FAILURE_COOLDOWN_MS = 2 * 60 * 1000;
+
+function getDoubanProxyConfig(): DoubanProxyConfig {
   const doubanProxyType =
     localStorage.getItem('doubanDataSource') ||
     (window as any).RUNTIME_CONFIG?.DOUBAN_PROXY_TYPE ||
@@ -112,9 +127,135 @@ function getDoubanProxyConfig(): {
     (window as any).RUNTIME_CONFIG?.DOUBAN_PROXY ||
     '';
   return {
-    proxyType: doubanProxyType,
+    proxyType: doubanProxyType as DoubanProxyType,
     proxyUrl: doubanProxy,
   };
+}
+
+function getDoubanProxyCandidates(
+  selected: DoubanProxyConfig
+): DoubanProxyConfig[] {
+  const selectedIndex = AUTO_PROXY_ORDER.indexOf(selected.proxyType);
+  const automaticOrder =
+    selectedIndex >= 0
+      ? [
+          ...AUTO_PROXY_ORDER.slice(selectedIndex),
+          ...AUTO_PROXY_ORDER.slice(0, selectedIndex),
+        ]
+      : AUTO_PROXY_ORDER;
+
+  const candidates: DoubanProxyConfig[] = [];
+  if (selected.proxyType !== 'custom' || selected.proxyUrl) {
+    candidates.push(selected);
+  }
+
+  automaticOrder.forEach((proxyType) => {
+    if (!candidates.some((candidate) => candidate.proxyType === proxyType)) {
+      candidates.push({ proxyType, proxyUrl: '' });
+    }
+  });
+
+  return candidates;
+}
+
+function rememberWorkingProxy(
+  selected: DoubanProxyConfig,
+  working: DoubanProxyConfig
+) {
+  proxyFailureCooldown.delete(working.proxyType);
+
+  if (selected.proxyType === working.proxyType) return;
+
+  localStorage.setItem('doubanDataSource', working.proxyType);
+  window.dispatchEvent(
+    new CustomEvent('doubanProxyAutoChanged', {
+      detail: { proxyType: working.proxyType },
+    })
+  );
+}
+
+async function requestWithProxyFallback(
+  operationName: string,
+  request: (config: DoubanProxyConfig) => Promise<DoubanResult>
+): Promise<DoubanResult> {
+  const selected = getDoubanProxyConfig();
+  const candidates = getDoubanProxyCandidates(selected);
+  const availableCandidates = candidates.filter(
+    (candidate) =>
+      (proxyFailureCooldown.get(candidate.proxyType) || 0) <= Date.now()
+  );
+  const candidatesToTry =
+    availableCandidates.length > 0 ? availableCandidates : candidates.slice(0, 1);
+  const failures: string[] = [];
+
+  for (const candidate of candidatesToTry) {
+    try {
+      const result = await request(candidate);
+      if (!result || result.code !== 200 || !Array.isArray(result.list)) {
+        throw new Error(result?.message || '返回数据格式无效');
+      }
+
+      rememberWorkingProxy(selected, candidate);
+      if (selected.proxyType !== candidate.proxyType) {
+        console.info(
+          `[Douban] ${selected.proxyType} 不可用，已自动切换到 ${candidate.proxyType}`
+        );
+      }
+      return result;
+    } catch (error) {
+      proxyFailureCooldown.set(
+        candidate.proxyType,
+        Date.now() + PROXY_FAILURE_COOLDOWN_MS
+      );
+      failures.push(
+        `${candidate.proxyType}: ${
+          error instanceof Error ? error.message : String(error)
+        }`
+      );
+      console.warn(`[Douban] ${candidate.proxyType} 请求失败`, error);
+    }
+  }
+
+  window.dispatchEvent(
+    new CustomEvent('globalError', {
+      detail: { message: `${operationName}失败，所有豆瓣代理均不可用` },
+    })
+  );
+  throw new Error(`${operationName}失败: ${failures.join(' | ')}`);
+}
+
+async function requestDoubanResult(
+  config: DoubanProxyConfig,
+  directRequest: () => Promise<Response>,
+  clientRequest: (
+    proxyUrl: string,
+    useTencentCDN?: boolean,
+    useAliCDN?: boolean,
+    useUnified?: boolean
+  ) => Promise<DoubanResult>
+): Promise<DoubanResult> {
+  switch (config.proxyType) {
+    case 'cors-proxy-zwei':
+      return clientRequest('https://ciao-cors.is-an.org/');
+    case 'cmliussss-cdn-tencent':
+      return clientRequest('', true, false, false);
+    case 'cmliussss-cdn-ali':
+      return clientRequest('', false, true, false);
+    case 'cmliussss-unified':
+      return clientRequest('', false, false, true);
+    case 'cors-anywhere':
+      return clientRequest('https://cors-anywhere.com/');
+    case 'custom':
+      return clientRequest(config.proxyUrl);
+    case 'direct':
+    default: {
+      const response = await directRequest();
+      if (!response.ok) {
+        throw new Error(`HTTP error! Status: ${response.status}`);
+      }
+      return response.json();
+    }
+  }
 }
 
 /**
@@ -181,14 +322,6 @@ export async function fetchDoubanCategories(
       list: list,
     };
   } catch (error) {
-    // 触发全局错误提示
-    if (typeof window !== 'undefined') {
-      window.dispatchEvent(
-        new CustomEvent('globalError', {
-          detail: { message: '获取豆瓣分类数据失败' },
-        })
-      );
-    }
     throw new Error(`获取豆瓣分类数据失败: ${(error as Error).message}`);
   }
 }
@@ -200,28 +333,24 @@ export async function getDoubanCategories(
   params: DoubanCategoriesParams
 ): Promise<DoubanResult> {
   const { kind, category, type, pageLimit = 20, pageStart = 0 } = params;
-  const { proxyType, proxyUrl } = getDoubanProxyConfig();
-  switch (proxyType) {
-    case 'cors-proxy-zwei':
-      return fetchDoubanCategories(params, 'https://ciao-cors.is-an.org/');
-    case 'cmliussss-cdn-tencent':
-      return fetchDoubanCategories(params, '', true, false);
-    case 'cmliussss-cdn-ali':
-      return fetchDoubanCategories(params, '', false, true);
-    case 'cmliussss-unified':
-      return fetchDoubanCategories(params, '', false, false, true);
-    case 'cors-anywhere':
-      return fetchDoubanCategories(params, 'https://cors-anywhere.com/');
-    case 'custom':
-      return fetchDoubanCategories(params, proxyUrl);
-    case 'direct':
-    default:
-      const response = await fetch(
-        `/api/douban/categories?kind=${kind}&category=${category}&type=${type}&limit=${pageLimit}&start=${pageStart}`
-      );
-
-      return response.json();
-  }
+  return requestWithProxyFallback('获取豆瓣分类数据', (config) =>
+    requestDoubanResult(
+      config,
+      () =>
+        fetchWithTimeout(
+          `/api/douban/categories?kind=${kind}&category=${category}&type=${type}&limit=${pageLimit}&start=${pageStart}`,
+          ''
+        ),
+      (proxyUrl, useTencentCDN, useAliCDN, useUnified) =>
+        fetchDoubanCategories(
+          params,
+          proxyUrl,
+          useTencentCDN,
+          useAliCDN,
+          useUnified
+        )
+    )
+  );
 }
 
 interface DoubanListParams {
@@ -235,28 +364,24 @@ export async function getDoubanList(
   params: DoubanListParams
 ): Promise<DoubanResult> {
   const { tag, type, pageLimit = 20, pageStart = 0 } = params;
-  const { proxyType, proxyUrl } = getDoubanProxyConfig();
-  switch (proxyType) {
-    case 'cors-proxy-zwei':
-      return fetchDoubanList(params, 'https://ciao-cors.is-an.org/');
-    case 'cmliussss-cdn-tencent':
-      return fetchDoubanList(params, '', true, false);
-    case 'cmliussss-cdn-ali':
-      return fetchDoubanList(params, '', false, true);
-    case 'cmliussss-unified':
-      return fetchDoubanList(params, '', false, false, true);
-    case 'cors-anywhere':
-      return fetchDoubanList(params, 'https://cors-anywhere.com/');
-    case 'custom':
-      return fetchDoubanList(params, proxyUrl);
-    case 'direct':
-    default:
-      const response = await fetch(
-        `/api/douban?tag=${tag}&type=${type}&pageSize=${pageLimit}&pageStart=${pageStart}`
-      );
-
-      return response.json();
-  }
+  return requestWithProxyFallback('获取豆瓣列表数据', (config) =>
+    requestDoubanResult(
+      config,
+      () =>
+        fetchWithTimeout(
+          `/api/douban?tag=${tag}&type=${type}&pageSize=${pageLimit}&pageStart=${pageStart}`,
+          ''
+        ),
+      (proxyUrl, useTencentCDN, useAliCDN, useUnified) =>
+        fetchDoubanList(
+          params,
+          proxyUrl,
+          useTencentCDN,
+          useAliCDN,
+          useUnified
+        )
+    )
+  );
 }
 
 export async function fetchDoubanList(
@@ -320,14 +445,6 @@ export async function fetchDoubanList(
       list: list,
     };
   } catch (error) {
-    // 触发全局错误提示
-    if (typeof window !== 'undefined') {
-      window.dispatchEvent(
-        new CustomEvent('globalError', {
-          detail: { message: '获取豆瓣列表数据失败' },
-        })
-      );
-    }
     throw new Error(`获取豆瓣分类数据失败: ${(error as Error).message}`);
   }
 }
@@ -360,28 +477,24 @@ export async function getDoubanRecommends(
     platform,
     sort,
   } = params;
-  const { proxyType, proxyUrl } = getDoubanProxyConfig();
-  switch (proxyType) {
-    case 'cors-proxy-zwei':
-      return fetchDoubanRecommends(params, 'https://ciao-cors.is-an.org/');
-    case 'cmliussss-cdn-tencent':
-      return fetchDoubanRecommends(params, '', true, false);
-    case 'cmliussss-cdn-ali':
-      return fetchDoubanRecommends(params, '', false, true);
-    case 'cmliussss-unified':
-      return fetchDoubanRecommends(params, '', false, false, true);
-    case 'cors-anywhere':
-      return fetchDoubanRecommends(params, 'https://cors-anywhere.com/');
-    case 'custom':
-      return fetchDoubanRecommends(params, proxyUrl);
-    case 'direct':
-    default:
-      const response = await fetch(
-        `/api/douban/recommends?kind=${kind}&limit=${pageLimit}&start=${pageStart}&category=${category}&format=${format}&region=${region}&year=${year}&platform=${platform}&sort=${sort}&label=${label}`
-      );
-
-      return response.json();
-  }
+  return requestWithProxyFallback('获取豆瓣推荐数据', (config) =>
+    requestDoubanResult(
+      config,
+      () =>
+        fetchWithTimeout(
+          `/api/douban/recommends?kind=${kind}&limit=${pageLimit}&start=${pageStart}&category=${category}&format=${format}&region=${region}&year=${year}&platform=${platform}&sort=${sort}&label=${label}`,
+          ''
+        ),
+      (proxyUrl, useTencentCDN, useAliCDN, useUnified) =>
+        fetchDoubanRecommends(
+          params,
+          proxyUrl,
+          useTencentCDN,
+          useAliCDN,
+          useUnified
+        )
+    )
+  );
 }
 
 async function fetchDoubanRecommends(

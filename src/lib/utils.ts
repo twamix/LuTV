@@ -2,8 +2,7 @@
 import he from 'he';
 import Hls from 'hls.js';
 
-function getDoubanImageProxyConfig(): {
-  proxyType:
+type DoubanImageProxyType =
   | 'direct'
   | 'server'
   | 'img3'
@@ -11,8 +10,15 @@ function getDoubanImageProxyConfig(): {
   | 'cmliussss-cdn-ali'
   | 'baidu'
   | 'custom';
+
+function getDoubanImageProxyConfig(): {
+  proxyType: DoubanImageProxyType;
   proxyUrl: string;
 } {
+  if (typeof window === 'undefined' || typeof localStorage === 'undefined') {
+    return { proxyType: 'server', proxyUrl: '' };
+  }
+
   const doubanImageProxyType =
     localStorage.getItem('doubanImageProxyType') ||
     (window as any).RUNTIME_CONFIG?.DOUBAN_IMAGE_PROXY_TYPE ||
@@ -23,7 +29,7 @@ function getDoubanImageProxyConfig(): {
     (window as any).RUNTIME_CONFIG?.DOUBAN_IMAGE_PROXY ||
     '';
   return {
-    proxyType: doubanImageProxyType,
+    proxyType: doubanImageProxyType as DoubanImageProxyType,
     proxyUrl: doubanImageProxy,
   };
 }
@@ -40,30 +46,15 @@ export function processImageUrl(originalUrl: string): string {
   }
 
   const { proxyType, proxyUrl } = getDoubanImageProxyConfig();
-  switch (proxyType) {
-    case 'server':
-      return `/api/image-proxy?url=${encodeURIComponent(originalUrl)}`;
-    case 'direct':
-      return originalUrl;
-    case 'img3':
-      return originalUrl.replace(/img\d+\.doubanio\.com/g, 'img3.doubanio.com');
-    case 'cmliussss-cdn-tencent':
-      return originalUrl.replace(
-        /img\d+\.doubanio\.com/g,
-        'img.doubanio.cmliussss.net'
-      );
-    case 'cmliussss-cdn-ali':
-      return originalUrl.replace(
-        /img\d+\.doubanio\.com/g,
-        'img.doubanio.cmliussss.com'
-      );
-    case 'baidu':
-      return `https://image.baidu.com/search/down?url=${encodeURIComponent(originalUrl)}`;
-    case 'custom':
-      return `${proxyUrl}${encodeURIComponent(originalUrl)}`;
-    default:
-      return `/api/image-proxy?url=${encodeURIComponent(originalUrl)}`;
+  const params = new URLSearchParams({
+    url: originalUrl,
+    proxyType,
+  });
+  if (proxyType === 'custom' && proxyUrl) {
+    params.set('proxyUrl', proxyUrl);
   }
+
+  return `/api/image-proxy?${params.toString()}`;
 }
 
 /**
