@@ -4,7 +4,7 @@
 
 import { AlertCircle, CheckCircle } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Suspense, useEffect, useState } from 'react';
+import { Suspense, useEffect, useRef, useState } from 'react';
 
 import { CURRENT_VERSION } from '@/lib/version';
 import { checkForUpdates, UpdateStatus } from '@/lib/version_check';
@@ -34,20 +34,19 @@ function VersionDisplay() {
 
   return (
     <button
-      onClick={() =>
-        window.open('https://github.com/twamix/LuTV', '_blank')
-      }
+      onClick={() => window.open('https://github.com/twamix/LuTV', '_blank')}
       className='absolute bottom-4 left-1/2 transform -translate-x-1/2 flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400 transition-colors cursor-pointer'
     >
       <span className='font-mono'>v{CURRENT_VERSION}</span>
       {!isChecking && updateStatus !== UpdateStatus.FETCH_FAILED && (
         <div
-          className={`flex items-center gap-1.5 ${updateStatus === UpdateStatus.HAS_UPDATE
-            ? 'text-yellow-600 dark:text-yellow-400'
-            : updateStatus === UpdateStatus.NO_UPDATE
+          className={`flex items-center gap-1.5 ${
+            updateStatus === UpdateStatus.HAS_UPDATE
+              ? 'text-yellow-600 dark:text-yellow-400'
+              : updateStatus === UpdateStatus.NO_UPDATE
               ? 'text-green-600 dark:text-green-400'
               : ''
-            }`}
+          }`}
         >
           {updateStatus === UpdateStatus.HAS_UPDATE && (
             <>
@@ -70,11 +69,20 @@ function VersionDisplay() {
 function LoginPageClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [password, setPassword] = useState('');
-  const [username, setUsername] = useState('');
+  const passwordRef = useRef<HTMLInputElement>(null);
+  const usernameRef = useRef<HTMLInputElement>(null);
+  // 只用于控制登录按钮是否可用；输入值本身保存在 DOM 里（非受控），
+  // 避免密码管理器写入后 React 用旧状态把输入框刷回空白。
+  const [passwordFilled, setPasswordFilled] = useState(false);
+  const [usernameFilled, setUsernameFilled] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [shouldAskUsername, setShouldAskUsername] = useState(false);
+
+  const syncFieldState = () => {
+    setPasswordFilled(Boolean(passwordRef.current?.value));
+    setUsernameFilled(Boolean(usernameRef.current?.value));
+  };
 
   const { siteName } = useSite();
 
@@ -90,7 +98,15 @@ function LoginPageClient() {
     e.preventDefault();
     setError(null);
 
-    if (!password || (shouldAskUsername && !username)) return;
+    // 直接读取 DOM 值：密码管理器填充的内容即使没触发 React 状态更新也能提交
+    const formData = new FormData(e.currentTarget);
+    const pwd = String(formData.get('password') ?? '');
+    const user = String(formData.get('username') ?? '');
+
+    if (!pwd || (shouldAskUsername && !user)) {
+      syncFieldState();
+      return;
+    }
 
     try {
       setLoading(true);
@@ -98,8 +114,8 @@ function LoginPageClient() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          password,
-          ...(shouldAskUsername ? { username } : {}),
+          password: pwd,
+          ...(shouldAskUsername ? { username: user } : {}),
         }),
       });
 
@@ -119,8 +135,6 @@ function LoginPageClient() {
     }
   };
 
-
-
   return (
     <div className='relative min-h-screen flex items-center justify-center px-4 overflow-hidden'>
       <div className='absolute top-4 right-4'>
@@ -132,34 +146,38 @@ function LoginPageClient() {
         </h1>
         <form onSubmit={handleSubmit} className='space-y-8'>
           {shouldAskUsername && (
-            <div>
+            <div key='username'>
               <label htmlFor='username' className='sr-only'>
                 用户名
               </label>
               <input
                 id='username'
+                name='username'
+                ref={usernameRef}
                 type='text'
                 autoComplete='username'
                 className='block w-full rounded-lg border-0 py-3 px-4 text-gray-900 dark:text-gray-100 shadow-sm ring-1 ring-white/60 dark:ring-white/20 placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:ring-2 focus:ring-green-500 focus:outline-none sm:text-base bg-white/60 dark:bg-zinc-800/60 backdrop-blur'
                 placeholder='输入用户名'
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
+                onInput={syncFieldState}
+                onChange={syncFieldState}
               />
             </div>
           )}
 
-          <div>
+          <div key='password'>
             <label htmlFor='password' className='sr-only'>
               密码
             </label>
             <input
               id='password'
+              name='password'
+              ref={passwordRef}
               type='password'
               autoComplete='current-password'
               className='block w-full rounded-lg border-0 py-3 px-4 text-gray-900 dark:text-gray-100 shadow-sm ring-1 ring-white/60 dark:ring-white/20 placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:ring-2 focus:ring-green-500 focus:outline-none sm:text-base bg-white/60 dark:bg-zinc-800/60 backdrop-blur'
               placeholder='输入访问密码'
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onInput={syncFieldState}
+              onChange={syncFieldState}
             />
           </div>
 
@@ -171,7 +189,9 @@ function LoginPageClient() {
           <button
             type='submit'
             disabled={
-              !password || loading || (shouldAskUsername && !username)
+              !passwordFilled ||
+              loading ||
+              (shouldAskUsername && !usernameFilled)
             }
             className='inline-flex w-full justify-center rounded-lg bg-green-600 py-3 text-base font-semibold text-white shadow-lg transition-all duration-200 hover:from-green-600 hover:to-blue-600 disabled:cursor-not-allowed disabled:opacity-50'
           >
